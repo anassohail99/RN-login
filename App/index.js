@@ -1,8 +1,19 @@
 import React, { Component } from "react";
-import { View, Text, StyleSheet, Image, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  KeyboardAvoidingView,
+} from "react-native";
 import Animated, { Easing } from "react-native-reanimated";
-import { TapGestureHandler, State } from "react-native-gesture-handler";
-
+import {
+  TapGestureHandler,
+  State,
+  TextInput,
+} from "react-native-gesture-handler";
+import { StatusBar } from "expo-status-bar";
+import Svg, { Image, Circle, ClipPath } from "react-native-svg";
 const { width, height } = Dimensions.get("window");
 const {
   Value,
@@ -18,6 +29,7 @@ const {
   timing,
   clockRunning,
   interpolate,
+  concat,
   Extrapolate,
 } = Animated;
 
@@ -67,6 +79,18 @@ class MusicApp extends Component {
       },
     ]);
 
+    this.onCloseState = event([
+      {
+        nativeEvent: ({ state }) =>
+          block([
+            cond(
+              eq(state, State.END),
+              set(this.buttonOpacity, runTiming(new Clock(), 0, 1))
+            ),
+          ]),
+      },
+    ]);
+
     this.buttonY = interpolate(this.buttonOpacity, {
       inputRange: [0, 1],
       outputRange: [100, 0],
@@ -75,54 +99,155 @@ class MusicApp extends Component {
 
     this.bgY = interpolate(this.buttonOpacity, {
       inputRange: [0, 1],
-      outputRange: [-height / 3, 0],
+      outputRange: [-height / 3 - 20, 0],
+      extrapolate: Extrapolate.CLAMP,
+    });
+
+    this.textInputZindex = interpolate(this.buttonOpacity, {
+      inputRange: [0, 1],
+      outputRange: [1, -1],
+      extrapolate: Extrapolate.CLAMP,
+    });
+
+    this.textInputY = interpolate(this.buttonOpacity, {
+      inputRange: [0, 1],
+      outputRange: [0, 100],
+      extrapolate: Extrapolate.CLAMP,
+    });
+
+    this.textInputOpacity = interpolate(this.buttonOpacity, {
+      inputRange: [0, 1],
+      outputRange: [1, 0],
+      extrapolate: Extrapolate.CLAMP,
+    });
+
+    this.rotateCross = interpolate(this.buttonOpacity, {
+      inputRange: [0, 1],
+      outputRange: [180, 360],
       extrapolate: Extrapolate.CLAMP,
     });
   }
 
   render() {
     return (
-      <View
-        style={{ flex: 1, backgroundColor: "#fff", justifyContent: "flex-end" }}
+      <KeyboardAvoidingView
+        style={{
+          flex: 1,
+          backgroundColor: "white",
+          justifyContent: "flex-end",
+        }}
+        behavior="height"
+        enabled
       >
-        <Animated.View
+        <View
           style={{
-            ...StyleSheet.absoluteFill,
-            transform: [{ translateY: this.bgY }],
+            flex: 1,
+            backgroundColor: "#fff",
+            justifyContent: "flex-end",
           }}
         >
-          <Image
-            source={require("../assets/bg.jpg")}
-            style={{ flex: 1, height: null, width: null }}
+          <StatusBar
+            style="light"
+            // hidden={false}
+            animated={true}
+            // translucent={false}
           />
-        </Animated.View>
+          <Animated.View
+            style={{
+              ...StyleSheet.absoluteFill,
+              transform: [{ translateY: this.bgY }],
+            }}
+          >
+            <Svg height={height + 50} width={width}>
+              <ClipPath id="clip">
+                <Circle r={height + 50} cx={width / 2} />
+              </ClipPath>
+              <Image
+                href={require("../assets/bg.jpg")}
+                // style={{ flex: 1, height: null, width: null }}
+                height={height + 50}
+                width={width}
+                preserveAspectRatio="XMidYMid slice"
+                clipPath="url(#clip)"
+              />
+            </Svg>
+          </Animated.View>
 
-        <View style={{ height: height / 3, justifyContent: "center" }}>
-          <TapGestureHandler onHandlerStateChange={this.onStateChange}>
+          <View style={{ height: height / 3, justifyContent: "center" }}>
+            <TapGestureHandler onHandlerStateChange={this.onStateChange}>
+              <Animated.View
+                style={{
+                  ...styles.button,
+                  opacity: this.buttonOpacity,
+                  transform: [{ translateY: this.buttonY }],
+                }}
+              >
+                <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                  SIGN IN
+                </Text>
+              </Animated.View>
+            </TapGestureHandler>
             <Animated.View
               style={{
                 ...styles.button,
+                backgroundColor: "#2e71dc",
                 opacity: this.buttonOpacity,
                 transform: [{ translateY: this.buttonY }],
               }}
             >
-              <Text style={{ fontSize: 20, fontWeight: "bold" }}>SIGN IN</Text>
+              <Text style={{ fontSize: 20, fontWeight: "bold", color: "#fff" }}>
+                SIGN IN WITH FACEBOOK
+              </Text>
             </Animated.View>
-          </TapGestureHandler>
-          <Animated.View
-            style={{
-              ...styles.button,
-              backgroundColor: "#2e71dc",
-              opacity: this.buttonOpacity,
-              transform: [{ translateY: this.buttonY }],
-            }}
-          >
-            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#fff" }}>
-              SIGN IN WITH FACEBOOK
-            </Text>
-          </Animated.View>
+
+            <Animated.View
+              style={{
+                height: height / 3,
+                ...StyleSheet.absoluteFill,
+                top: null,
+                justifyContent: "center",
+                zIndex: this.textInputZindex,
+                opacity: this.textInputOpacity,
+                transform: [{ translateY: this.textInputY }],
+                backgroundColor: "white",
+                borderTopLeftRadius: 40,
+                borderTopRightRadius: 40,
+              }}
+            >
+              <TapGestureHandler onHandlerStateChange={this.onCloseState}>
+                <Animated.View style={styles.closebtn}>
+                  <Animated.Text
+                    style={{
+                      fontSize: 15,
+                      transform: [{ rotate: concat(this.rotateCross, "deg") }],
+                    }}
+                  >
+                    X
+                  </Animated.Text>
+                </Animated.View>
+              </TapGestureHandler>
+
+              <TextInput
+                placeholder="EMAIL"
+                style={styles.textInput}
+                placeholderTextColor="#000"
+              />
+
+              <TextInput
+                placeholder="PASSWORD"
+                style={styles.textInput}
+                placeholderTextColor="#000"
+              />
+
+              <Animated.View style={styles.button}>
+                <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                  SIGN IN
+                </Text>
+              </Animated.View>
+            </Animated.View>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 }
@@ -143,5 +268,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+
+    elevation: 5,
+  },
+  closebtn: {
+    height: 40,
+    width: 40,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
+    top: -20,
+    left: width / 2 - 20,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+
+    elevation: 5,
+  },
+  textInput: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 0.5,
+    marginHorizontal: 20,
+    paddingLeft: 10,
+    marginLeft: 10,
+    marginVertical: 5,
+    borderColor: "rgba(0,0,0,0.2)",
   },
 });
